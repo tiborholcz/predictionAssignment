@@ -1,0 +1,57 @@
+---
+title: "Prediction Assignment Writeup"
+author: "Tibor Holcz"
+date: "Saturday, May 23, 2015"
+output: html_document
+---
+# Prediction Assignment Writeup
+
+## Abstract
+
+My goal in this paper is to use many sensors data to predict the classification of user exercise. The training data set are from the  following site: <http://groupware.les.inf.puc-rio.br/har>. I will use *caret* package to build the predict method with *randomForest* algorithm.
+
+```{r, warning=FALSE}
+library(caret)
+library(randomForest)
+```
+
+## Data preprocess
+
+After loading the data set, we could see, there are 159 possible prediction variable. The **summary()** function shows us, there are many variables without enough observation to use them in the prediction. Some of the variables aren't useable, for example the user name. 
+
+```{r, cache=TRUE, warning=FALSE}
+data<-read.csv("pml-training.csv")
+sds<-apply(data, 2, sd)
+sds[length(sds)]<-1
+data<-data[,!is.na(sds)]
+data<-data[,-c(1:4)]
+```
+
+To use the data to create predicition model, we should create a training and a testing dataset. In normal circumstances the training set should be approximately 70% percent of the whole dataset. I used a much smaller set, for technical reasons, I will explain later, why.
+
+```{r, cache=TRUE}
+set.seed(324521)
+inTraining<-createDataPartition(data$classe, p=0.2, list=FALSE)
+training<-data[inTraining,]
+testing<-data[-inTraining,]
+```
+
+## Create model
+
+At next step, we create the model, with randomForest method. It takes time. And more time... 
+
+```{r, cache=TRUE}
+model<-train(classe~., method="rf", proxy=TRUE, data=training)
+```
+
+## Results
+
+We could crete a prediction to the testing set, then compute accuracy:
+
+```{r, cache=TRUE}
+pred<-predict(model, testing)
+table(testing$classe, pred)
+accuracy<-sum(as.character(testing$classe)==as.character(pred))/length(pred)
+```
+
+So the accuracy is `r round(accuracy*100, 2)`%. This accuracy could be better with bigger training set. The problem is, while training set gets bigger, the time needed to create the model is growing. So I could create a model with more accuracy, if I have more computer memory (what I haven't), faster processor (what I haven't), and more time (what I absolutely haven't anymore :) ).
